@@ -138,23 +138,7 @@ const RegistrationPage = () => {
                     />
                   </div>
 
-                  {/* Role Selection */}
-                  <div className="form-group mb-4">
-                    <label htmlFor="roleSelect" className="form-label">
-                      Select Role
-                    </label>
-                    <select
-                      className="form-control"
-                      id="roleSelect"
-                      name="role"
-                      value={formData.role}
-                      onChange={handleChange}
-                      required>
-                      {/* <option value="" disabled>-- Select a Role --</option> */}
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
+                  
 
                   {/* Submit Button */}
                   <button type="submit" className="btn btn-primary w-100">

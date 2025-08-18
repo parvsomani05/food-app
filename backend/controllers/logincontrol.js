@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const registerUser = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -13,7 +13,7 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    user = new User({ name, email, password, role });
+    user = new User({ name, email, password, role: "user" });
 
     user.password = await bcrypt.hash(password, 10);
 
@@ -27,13 +27,13 @@ const registerUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email, role });
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials or role." });
+      return res.status(401).json({ message: "Invalid credentials." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -52,7 +52,7 @@ const loginUser = async (req, res) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "2h" },
       (err, token) => {
         if (err) throw err;
         res.status(200).json({
@@ -72,7 +72,18 @@ const loginUser = async (req, res) => {
   }
 };
 
+const me = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json(user);
+  } catch (e) {
+    return res.status(500).send("Server Error");
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  me,
 };

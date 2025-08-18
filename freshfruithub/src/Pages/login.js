@@ -8,7 +8,6 @@ const LoginPage = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "",
   });
 
   const handleChange = (e) => {
@@ -22,11 +21,6 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.role) {
-      alert("Please select a role.");
-      return;
-    }
-
     try {
       const API_URL = "http://localhost:5000/api/login";
 
@@ -36,7 +30,11 @@ const LoginPage = () => {
       alert("Login Successful!");
 
       localStorage.setItem("token", response.data.token);
-      navigate("/home");
+      if (response.data?.user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/home');
+      }
     } catch (error) {
       console.error(
         "Login Error:",
@@ -102,25 +100,7 @@ const LoginPage = () => {
                     />
                   </div>
 
-                  {/* Role Selection */}
-                  <div className="form-group mb-4">
-                    <label htmlFor="roleSelect" className="form-label">
-                      Select Role
-                    </label>
-                    <select
-                      className="form-control"
-                      id="roleSelect"
-                      name="role"
-                      value={formData.role}
-                      onChange={handleChange}
-                      required>
-                      <option value="" disabled>
-                        -- Select a Role --
-                      </option>
-                      <option value="admin">Admin</option>
-                      <option value="user">User</option>
-                    </select>
-                  </div>
+                  
                   <Link to="/register">Create Account ?</Link>
                   {/* Submit Button */}
                   <button type="submit" className="btn btn-primary w-100">

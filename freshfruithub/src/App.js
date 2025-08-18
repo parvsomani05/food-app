@@ -9,23 +9,38 @@ import ContactPage from "./Pages/ContactPage";
 import AboutPage from "./Pages/AboutPage";
 import LoginPage from "./Pages/login";
 import RegistrationPage from "./Pages/register";
+import PrivateRoute from "./routes/PrivateRoute";
+import AdminRoute from "./routes/AdminRoute";
+import AdminPanel from "./Pages/AdminPanel";
+import CheckoutPage from "./Pages/CheckoutPage";
+import CartPage from "./Pages/CartPage";
+import { CartProvider } from "./context/CartContext";
 
 function App() {
   return (
     <>
       {/* <Navbar/> */}
       <Router>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<LoginPage />}></Route>
-          <Route path="/register" element={<RegistrationPage />} />
-          <Route path="/home" element={<HomePage />}></Route>
-          <Route path="/shop" element={<ShopPage />}></Route>
-          <Route path="/News" element={<NewsPage />}></Route>
-          <Route path="/contact" element={<ContactPage />}></Route>
-          <Route path="/about" element={<AboutPage />}></Route>
-        </Routes>
-        <Footer />
+        <CartProvider>
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<LoginPage />}></Route>
+            <Route path="/register" element={<RegistrationPage />} />
+            <Route element={<PrivateRoute />}>
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/shop" element={<ShopPage />} />
+              <Route path="/News" element={<NewsPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/cart" element={<CartPage />} />
+            </Route>
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminPanel />} />
+            </Route>
+          </Routes>
+          <Footer />
+        </CartProvider>
       </Router>
     </>
   );
