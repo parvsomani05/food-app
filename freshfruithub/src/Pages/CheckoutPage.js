@@ -48,30 +48,65 @@ const CheckoutPage = () => {
   };
 
   const placeOrder = async () => {
-    if (paymentMethod === "cod") {
-      const { data } = await api.post("/orders", {
+    try {
+      if (paymentMethod === "cod") {
+        const { data } = await api.post("/orders", {
+          shippingAddress: address,
+          paymentMethod: "cod",
+        });
+        alert("Order placed (COD)");
+        // Clear cart only after successful COD order
+        await clear();
+        await refresh();
+        return;
+      }
+
+      const amountInPaise = Math.max(1, Math.round(total * 100));
+      
+      // Step 1: Create Razorpay order
+      const order = await api.post("/payments/razorpay/order", { amountInPaise });
+      
+      // Step 2: Process payment with Razorpay
+      let payment;
+      try {
+        payment = await payWithRazorpay(order.data.id, amountInPaise);
+      } catch (paymentError) {
+        console.error("Payment failed:", paymentError);
+        alert("Payment was cancelled or failed. Your cart items are still saved.");
+        return; // Don't clear cart if payment failed
+      }
+
+      // Step 3: Create order in database
+      const created = await api.post("/orders", {
         shippingAddress: address,
-        paymentMethod: "cod",
+        paymentMethod: "razorpay",
       });
-      alert("Order placed (COD)");
-      return;
+
+      // Step 4: Verify payment on backend
+      try {
+        await api.post("/orders/razorpay/paid", {
+          orderId: created.data._id,
+          razorpay_order_id: order.data.id,
+          razorpay_payment_id: payment.razorpay_payment_id,
+          razorpay_signature: payment.razorpay_signature,
+        });
+        
+        // Only clear cart after successful payment verification
+        alert("Payment successful and order placed!");
+        await clear();
+        await refresh();
+        
+      } catch (verificationError) {
+        console.error("Payment verification failed:", verificationError);
+        alert("Payment completed but verification failed. Please contact support. Order ID: " + created.data._id);
+        // Don't clear cart if verification failed - let user contact support
+      }
+
+    } catch (error) {
+      console.error("Order placement failed:", error);
+      alert("Failed to place order. Your cart items are still saved. Please try again.");
+      // Don't clear cart if order placement failed
     }
-    const amountInPaise = Math.max(1, Math.round(total * 100));
-    const order = await api.post("/payments/razorpay/order", { amountInPaise });
-    const payment = await payWithRazorpay(order.data.id, amountInPaise);
-    const created = await api.post("/orders", {
-      shippingAddress: address,
-      paymentMethod: "razorpay",
-    });
-    await api.post("/orders/razorpay/paid", {
-      orderId: created.data._id,
-      razorpay_order_id: order.data.id,
-      razorpay_payment_id: payment.razorpay_payment_id,
-      razorpay_signature: payment.razorpay_signature,
-    });
-    alert("Payment successful and order placed");
-    await clear();
-    await refresh();
   };
 
   return (
