@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 
 const toSlug = (value) =>
@@ -10,9 +11,11 @@ const toSlug = (value) =>
     .replace(/-+/g, "-");
 
 const AdminPanel = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState("products");
+  const [users, setUsers] = useState([]);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "products");
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [form, setForm] = useState({
@@ -39,9 +42,27 @@ const AdminPanel = () => {
     setOrders(data);
   };
 
+  const loadUsers = async () => {
+    try {
+      const { data } = await api.get("/users");
+      setUsers(data);
+    } catch (error) {
+      console.error("Error loading users:", error);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "orders") loadOrders();
+    if (activeTab === "users") loadUsers();
   }, [activeTab]);
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    if (currentTab !== activeTab) {
+      setSearchParams({ tab: activeTab });
+    }
+  }, [activeTab, searchParams, setSearchParams]);
 
   const onChange = (field) => (e) => {
     const value = e.target.value;
@@ -134,6 +155,27 @@ const AdminPanel = () => {
     loadOrders();
   };
 
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      await api.put(`/users/${userId}/role`, { role: newRole });
+      loadUsers();
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      alert("Error updating user role");
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    if (!window.confirm("Delete this user? This action cannot be undone.")) return;
+    try {
+      await api.delete(`/users/${userId}`);
+      loadUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Error deleting user");
+    }
+  };
+
   return (
     <div className="container-fluid py-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
@@ -153,6 +195,14 @@ const AdminPanel = () => {
               onClick={() => setActiveTab("orders")}
             >
               Manage Orders
+            </button>
+          </li>
+          <li className="nav-item ms-2">
+            <button
+              className={`nav-link ${activeTab === "users" ? "active" : ""}`}
+              onClick={() => setActiveTab("users")}
+            >
+              Manage Users
             </button>
           </li>
         </ul>
@@ -439,6 +489,53 @@ const AdminPanel = () => {
                     </tr>
                   ))
                 )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "users" && (
+        <div className="card p-4 w-100 shadow-sm" style={{ minHeight: "60vh" }}>
+          <h5>All Users</h5>
+          <div className="table-responsive">
+            <table className="table align-middle">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user._id}>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <select
+                        className="form-select form-select-sm"
+                        value={user.role}
+                        onChange={(e) => updateUserRole(user._id, e.target.value)}
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </td>
+                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => deleteUser(user._id)}
+                      >
+                        <i className="fa fa-trash me-1"></i>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
